@@ -207,7 +207,15 @@ function scrollToBottom() {
 async function sendMessage() {
   const input = document.getElementById('chat-input');
   const text = input.value.trim();
-  if (!text || !state.activeConv || state.streaming) return;
+  if (!text || state.streaming) return;
+
+  // 대화 없으면 자동 생성
+  if (!state.activeConv) {
+    const data = await api('/api/conversations', { method: 'POST', body: { name: '새 대화' } });
+    if (!data) return;
+    await loadConversations();
+    state.activeConv = data.conversation.id;
+  }
 
   const lastMsg = state.messages[state.messages.length - 1];
   if (lastMsg && lastMsg.role === 'assistant') return;
