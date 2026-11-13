@@ -7,12 +7,10 @@ let state = {
   streaming: false,
   settings: {},
   connected: false,
-  systemStats: {},
 };
 
 // ====== Utility ======
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-const formatTime = (iso) => new Date(iso).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
 
 // ====== API ======
 async function api(path, opts = {}) {
@@ -62,9 +60,6 @@ async function streamSSE(sessionId) {
         if (parsed.type === 'token') {
           content += parsed.content;
           updateStreamingMessage(content);
-        }
-        if (parsed.type === 'system_stats') {
-          updateSystemStats(parsed);
         }
       } catch {}
     }
@@ -161,33 +156,20 @@ function renderMessages() {
   const el = document.getElementById('chat-messages');
 
   if (state.messages.length === 0 && !state.streaming) {
-    // Welcome screen is always in HTML — just hide messages
-    el.innerHTML = '';
-    // Ensure welcome screen is visible
-    const container = el.parentElement;
-    if (!container.querySelector('.welcome-text')) {
-      el.innerHTML = `
-        <div class="welcome-screen">
-          <div class="welcome-text">
-            <h1>무엇을 도와드릴까요?</h1>
-          </div>
-        </div>`;
-    }
+    el.innerHTML = '<div class="welcome"><h1>무엇을 도와드릴까요?</h1></div>';
     return;
   }
 
   if (state.messages.length === 0 && state.streaming) {
-    el.innerHTML = `
-      <div class="streaming-dots"><span></span><span></span><span></span></div>`;
+    el.innerHTML = '<div class="streaming-dots"><span></span><span></span><span></span></div>';
     return;
   }
 
-  // Hide welcome, show messages
   el.innerHTML = state.messages.map(m => `
     <div class="message ${m.role}">
-      <div class="msg-avatar">${m.role === 'user' ? '' : ''}</div>
+      <div class="msg-avatar"></div>
       <div class="msg-content">
-        <p class="msg-text">${escapeHtml(m.content)}</p>
+        <p>${escapeHtml(m.content)}</p>
       </div>
     </div>
   `).join('');
@@ -207,12 +189,12 @@ function updateStreamingMessage(content) {
     streamMsg.className = 'message assistant';
     streamMsg.innerHTML = `
       <div class="msg-avatar"></div>
-      <div class="msg-content"><p class="msg-text"></p></div>`;
+      <div class="msg-content"><p></p></div>`;
     const dots = el.querySelector('.streaming-dots');
     if (dots) el.insertBefore(streamMsg, dots);
     else el.appendChild(streamMsg);
   }
-  streamMsg.querySelector('.msg-text').textContent = content;
+  streamMsg.querySelector('p').textContent = content;
   scrollToBottom();
 }
 
@@ -295,15 +277,10 @@ async function loadSettings() {
   document.getElementById('set-topP').value = state.settings.topP ?? '';
 
   const setToggle = (key, btnId) => {
-    document.getElementById(btnId).className = `toggle-btn ${state.settings[key] ? 'active' : ''}`;
+    document.getElementById(btnId).className = `toggle ${state.settings[key] ? 'active' : ''}`;
   };
   setToggle('streamEnabled', 'btn-stream');
-  setToggle('wsEnabled', 'btn-ws');
   setToggle('autoScroll', 'btn-autoscroll');
-
-  document.querySelectorAll('.theme-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.theme === state.settings.theme);
-  });
 }
 
 async function toggleSetting(key) {
@@ -313,35 +290,14 @@ async function toggleSetting(key) {
   loadSettings();
 }
 
-async function resetSettings() {
-  await api('/api/settings/reset', { method: 'POST' });
-  loadSettings();
-}
-
-function setTheme(theme) {
-  state.settings.theme = theme;
-  api('/api/settings/theme', { method: 'POST', body: { value: theme } });
-  document.querySelectorAll('.theme-btn').forEach(b => {
-    b.classList.toggle('active', b.dataset.theme === theme);
-  });
-}
-
-function updateSystemStats(stats) {
-  // Lightweight stats update from SSE
-  const cpu = stats.cpuUsage || {};
-  const cpuPct = cpu.total || 0;
-  const cpuEl = document.getElementById('stat-cpu');
-  if (cpuEl) cpuEl.textContent = `${Math.round(cpuPct)}%`;
-}
-
 // ====== Server Info ======
 function showServerInfo() {
   const localIP = getLocalIP();
   alert(
-    `🖥️  Server:  http://localhost:3000\n` +
-    `📡 External: http://${localIP}:3000\n` +
-    `📱 다른 기기에서 접속: http://${localIP}:3000\n` +
-    `⚡ API: http://localhost:3000/api/health`
+    `Server:  http://localhost:3000\n` +
+    `External: http://${localIP}:3000\n` +
+    `접속: http://${localIP}:3000\n` +
+    `API: http://localhost:3000/api/health`
   );
 }
 
@@ -352,7 +308,7 @@ function getLocalIP() {
     const offer = ac.createOffer();
     ac.onicecandidate = (e) => {
       if (!e || !e.candidate || !e.candidate.candidate) return;
-      const m = e.candidate.candidate.match(/([0-9]{1,3}\.){3}[0-9]{1,3}/);
+      const m = e.candidate.candidate.match(/([0-9]{1,3}\\.){3}[0-9]{1,3}/);
       if (m) return m[0];
     };
     ac.setLocalDescription(offer);
@@ -371,7 +327,6 @@ function escapeHtml(str) {
 async function checkConnection() {
   const data = await api('/api/health');
   state.connected = !!data;
-  updateStats();
 }
 
 // ====== Auto Resize Input ======
@@ -386,10 +341,7 @@ document.getElementById('chat-input').addEventListener('input', autoResizeInput)
 // ====== Init ======
 async function init() {
   await Promise.all([checkConnection(), loadConversations()]);
-
-  setInterval(async () => {
-    await checkConnection();
-  }, 10000);
+  setInterval(checkConnection, 10000);
 }
 
 init();
