@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>localLLM — 실시간 AI 추론 대시보드</title>
+  <title>localLLM</title>
   <link rel="stylesheet" href="/styles.css">
 </head>
 <body>
@@ -11,28 +11,57 @@
     <!-- Sidebar -->
     <aside class="sidebar">
       <div class="sidebar-header">
+        <div class="logo">
+          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+            <circle cx="10" cy="10" r="9" stroke="currentColor" stroke-width="1.2" opacity="0.5"/>
+            <path d="M7 13.5C7 13.5 8.5 11.5 10 11.5C11.5 11.5 13 13.5 13 13.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+            <circle cx="8.5" cy="9" r="0.8" fill="currentColor" opacity="0.7"/>
+            <circle cx="11.5" cy="9" r="0.8" fill="currentColor" opacity="0.7"/>
+          </svg>
+          <span>localLLM</span>
+        </div>
         <button class="new-chat-btn" onclick="showNewConversation()">
-          <span>＋</span>
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <path d="M7 1v12M1 7h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+          </svg>
           <span>새 대화</span>
         </button>
       </div>
-      <div class="sidebar-scroll" id="conversation-list">
-      </div>
+      <div class="sidebar-scroll" id="conversation-list"></div>
       <div class="sidebar-footer">
-        <button class="sidebar-footer-btn" onclick="switchTab('settings')">⚙️ 설정</button>
-        <button class="sidebar-footer-btn" onclick="showServerInfo()">ℹ️ 서버 정보</button>
+        <button class="sidebar-footer-btn" onclick="switchTab('settings')">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <circle cx="7" cy="7" r="2.5" stroke="currentColor" stroke-width="1.2"/>
+            <path d="M7 1.5v1.5M7 11v1.5M1.5 7h1.5M11 7h1.5M3 3l1 1M10 10l1 1M11 3l-1 1M4 10l-1 1" stroke="currentColor" stroke-width="1" stroke-linecap="round"/>
+          </svg>
+          <span>설정</span>
+        </button>
+        <button class="sidebar-footer-btn" onclick="showServerInfo()">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+            <circle cx="7" cy="7" r="5.5" stroke="currentColor" stroke-width="1.2"/>
+            <path d="M7 5v3M7 9.5v.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+          </svg>
+          <span>서버 정보</span>
+        </button>
       </div>
     </aside>
 
-    <!-- Main Content -->
+    <!-- Main -->
     <main class="main-content">
-      <!-- Chat Tab -->
+      <!-- Chat -->
       <div id="tab-chat" class="tab active">
         <div class="chat-area">
           <div class="messages-container" id="chat-messages">
             <div class="welcome-screen">
-              <div class="logo-icon">🧠</div>
-              <h1>localLLM</h1>
+              <div class="logo-icon">
+                <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                  <circle cx="24" cy="24" r="22" stroke="currentColor" stroke-width="1.5" opacity="0.3"/>
+                  <path d="M16 33C16 33 19.5 27 24 27C28.5 27 32 33 32 33" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                  <circle cx="20" cy="20" r="2" fill="currentColor" opacity="0.6"/>
+                  <circle cx="28" cy="20" r="2" fill="currentColor" opacity="0.6"/>
+                </svg>
+              </div>
+              <h1>localLLM에 오신 것을 환영합니다</h1>
               <div class="welcome-actions">
                 <button class="welcome-action" onclick="createNewConversation()">
                   대화 시작하기
@@ -43,12 +72,12 @@
                   <small>"안녕"이라고 입력해보세요</small>
                 </button>
                 <button class="welcome-action" onclick="switchTab('settings')">
-                  설정 변경하기
-                  <small>모델 파라미터를 조정하세요</small>
+                  모델 설정
+                  <small>Temperature, 토큰 수 등 조정</small>
                 </button>
                 <button class="welcome-action" onclick="showServerInfo()">
                   서버 정보
-                  <small>다른 기기에서 접속하는 법</small>
+                  <small>접속 주소 확인</small>
                 </button>
               </div>
             </div>
@@ -67,15 +96,15 @@
                 </button>
               </div>
             </div>
-            <div class="input-hint">Enter로 전송 · Shift+Enter로 줄바꿈 · Mac Studio M5 Max에서 구동 중</div>
+            <div class="input-hint">Enter로 전송 · Shift+Enter로 줄바꿈</div>
           </div>
         </div>
       </div>
 
-      <!-- Settings Tab -->
+      <!-- Settings -->
       <div id="tab-settings" class="tab">
         <div class="settings-panel">
-          <h2>⚙️ 설정</h2>
+          <h2>설정</h2>
           <div class="settings-group">
             <h3>모델 설정</h3>
             <div class="settings-row">
@@ -134,8 +163,8 @@
           <div class="settings-group">
             <h3>테마</h3>
             <div class="theme-buttons">
-              <button class="theme-btn active" data-theme="dark" onclick="setTheme('dark')">🌙 다크</button>
-              <button class="theme-btn" data-theme="light" onclick="setTheme('light')">☀️ 라이트</button>
+              <button class="theme-btn active" data-theme="dark" onclick="setTheme('dark')">다크</button>
+              <button class="theme-btn" data-theme="light" onclick="setTheme('light')">라이트</button>
             </div>
           </div>
         </div>
@@ -155,10 +184,15 @@
     </div>
   </div>
 
-  <!-- Connection Error Modal -->
+  <!-- Error Modal -->
   <div id="error-modal" class="modal-overlay" style="display:none">
     <div class="modal error-modal">
-      <div class="error-icon">⚠️</div>
+      <div class="error-icon">
+        <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
+          <circle cx="20" cy="20" r="18" stroke="#eab308" stroke-width="1.5"/>
+          <path d="M20 12v10M20 25v1" stroke="#eab308" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+      </div>
       <h3>서버 연결 끊김</h3>
       <p id="error-message">서버에 연결할 수 없습니다.</p>
       <div class="modal-actions">

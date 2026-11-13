@@ -190,7 +190,7 @@ function renderMessages() {
   // Hide welcome, show messages
   el.innerHTML = state.messages.map(m => `
     <div class="message ${m.role}">
-      <div class="msg-avatar">${m.role === 'user' ? '👤' : '🤖'}</div>
+      <div class="msg-avatar">${m.role === 'user' ? '' : ''}</div>
       <div class="msg-content">
         <p class="msg-text">${escapeHtml(m.content)}</p>
       </div>
@@ -211,7 +211,7 @@ function updateStreamingMessage(content) {
     streamMsg = document.createElement('div');
     streamMsg.className = 'message assistant';
     streamMsg.innerHTML = `
-      <div class="msg-avatar">🤖</div>
+      <div class="msg-avatar"></div>
       <div class="msg-content"><p class="msg-text"></p></div>`;
     const dots = el.querySelector('.streaming-dots');
     if (dots) el.insertBefore(streamMsg, dots);
