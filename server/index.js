@@ -89,13 +89,15 @@ app.get('/', (_req, res) => {
 });
 
 // Serve static files if built
-const staticPaths = [join(__dirname, '..', 'dist'), join(__dirname, '..', 'web-static')];
+const staticPaths = [join(__dirname, '..', 'web-static'), join(__dirname, '..', 'dist')];
 for (const staticPath of staticPaths) {
   try {
-    readFileSync(join(staticPath, 'index.html'));
+    const indexPath = join(staticPath, 'index.html');
+    readFileSync(indexPath);
+    console.log(`📁 Serving static files from: ${staticPath}`);
     app.use(express.static(staticPath));
     break;
-  } catch {
+  } catch (e) {
     // try next path
   }
 }
