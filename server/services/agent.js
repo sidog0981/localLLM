@@ -41,7 +41,7 @@ export class AgentService {
     }
 
     // 데모 스트리밍
-    this.streamDemo(conversation, model, maxTokens, sessionId, res);
+    this.streamDemo(conversation, model, maxTokens, sessionId, res, req);
   }
 
   // 실제 LLM 스트리밍
@@ -96,7 +96,7 @@ export class AgentService {
   }
 
   // 데모 스트리밍
-  streamDemo(conversation, model, maxTokens, sessionId, res) {
+  streamDemo(conversation, model, maxTokens, sessionId, res, req = null) {
     const demoResponses = [
       '안녕하세요! 로컬 LLM 데모입니다. 이 서버는 Mac Studio M5 Max에서 실행 중이며, 실시간으로 추론 결과를 스트리밍합니다.\n\n주요 기능:\n- **실시간 스트리밍**: SSE를 통해 토큰 단위 응답\n- **WebSocket**: 양방향 실시간 통신\n- **대화 관리**: 세션별 메시지 히스토리\n- **시스템 모니터링**: CPU/메모리 사용량',
       '좋습니다! 로컬에서 LLM을 돌리는 가장 효율적인 방법은 Mac Studio 같은 강력한 하드웨어를 활용하는 거예요.\n\n이 데모는 실제 LLM 대신 시뮬레이션을 사용하지만, 프로덕션에서는 Ollama, llama.cpp, Mamba 등을 연결할 수 있습니다.',
