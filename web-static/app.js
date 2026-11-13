@@ -72,8 +72,69 @@ async function streamSSE(sessionId) {
         if (parsed.type === 'system_stats') {
           updateSystemStats(parsed);
         }
+        if (parsed.type === 'stream_end') {
+          // stream_end 도착 → streamSSE의 별도 종료 처리
+        }
       } catch {}
     }
+  }
+
+  state.streaming = false;
+  updateStreamingUI();
+  loadConversations();
+}
+
+// SSE 스트림: messageCount에 기반한 demo 대신 최신 토큰만 반환
+async function streamLatestResponse(sessionId, startingCount) {
+  const url = `${API}/api/agent/stream?sessionId=${sessionId}`;
+  const res = await fetch(url);
+  if (!res.ok) return;
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  let content = '';
+  let tokenCount = 0;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop();
+
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      const data = line.slice(6);
+      if (data === '[DONE]') continue;
+      try {
+        const parsed = JSON.parse(data);
+        if (parsed.type === 'token') {
+          tokenCount++;
+          // messageCount가 시작 지점보다 클 때만 (새로운 응답)
+          if (tokenCount <= 1) {
+            content = parsed.content;
+          } else {
+            content += parsed.content;
+          }
+          updateStreamingMessage(content);
+        }
+        if (parsed.type === 'system_stats') {
+          updateSystemStats(parsed);
+        }
+      } catch {}
+    }
+  }
+
+  if (content) {
+    state.messages.push({
+      id: uid(),
+      role: 'assistant',
+      content,
+      timestamp: new Date().toISOString(),
+    });
+    renderMessages();
   }
 
   state.streaming = false;
@@ -218,6 +279,10 @@ async function sendMessage() {
   const input = document.getElementById('chat-input');
   const text = input.value.trim();
   if (!text || !state.activeConv || state.streaming) return;
+
+  // 이미 assistant 응답이 있으면 중복 방지
+  const lastMsg = state.messages[state.messages.length - 1];
+  if (lastMsg && lastMsg.role === 'assistant') return;
 
   input.value = '';
   input.disabled = true;

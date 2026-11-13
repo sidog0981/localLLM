@@ -1,6 +1,4 @@
 // Agent 서비스 — 로컬 LLM 추론 시뮬레이션 + 스트리밍
-import { Readable } from 'stream';
-
 export class AgentService {
   constructor(wss, conversations, settings, system, llmProxy = null) {
     this.wss = wss;
@@ -11,7 +9,7 @@ export class AgentService {
     this.sessions = new Map();
   }
 
-  // SSE 스트리밍 응답
+  // SSE 스트리밍 응답 (마지막 user 메시지에 기반)
   streamResponse(sessionId, req, res) {
     const conversation = this.conversations.get(sessionId);
     if (!conversation) {
@@ -20,12 +18,32 @@ export class AgentService {
       return;
     }
 
-    res.writeHead(200, {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive',
-      'Access-Control-Allow-Origin': '*',
-    });
+    // 마지막 user 메시지 찾기
+    const lastUserMsg = conversation.messages
+      .slice()
+      .reverse()
+      .find(m => m.role === 'user');
+
+    // 이미 assistant 응답이 있는지 확인 (중복 방지)
+    const lastMsg = conversation.messages[conversation.messages.length - 1];
+    if (lastMsg && lastMsg.role === 'assistant') {
+      // 이미 응답 있음 → 빈 스트림
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'Access-Control-Allow-Origin': '*',
+      });
+      res.write(`data: ${JSON.stringify({ type: 'stream_start', model: 'N/A', tokens: 0, timestamp: Date.now() })}\n\n`);
+      res.write('data: [DONE]\n\n');
+      return;
+    }
+
+    if (!lastUserMsg) {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'No user message to respond to' }));
+      return;
+    }
 
     const model = this.settings.get('model') || 'demo-llama3-8b';
     const maxTokens = this.settings.get('maxTokens') || 512;
@@ -35,26 +53,26 @@ export class AgentService {
     if (this.llmProxy) {
       const modelUrl = this.settings.get('customModelUrl');
       if (modelUrl) {
-        this.streamFromLLM(model, maxTokens, temperature, conversation.messageCount, sessionId, res, conversation);
+        this.streamFromLLM(model, maxTokens, temperature, lastUserMsg, sessionId, res);
         return;
       }
     }
 
     // 데모 스트리밍
-    this.streamDemo(conversation, model, maxTokens, sessionId, res, req);
+    this.streamDemo(lastUserMsg.content, model, maxTokens, sessionId, res, req);
   }
 
   // 실제 LLM 스트리밍
-  async streamFromLLM(model, maxTokens, temperature, messageCount, sessionId, res, conversation) {
-    const lastMsg = conversation.messages?.[messageCount - 1];
-    if (!lastMsg || lastMsg.role !== 'user') {
-      res.write(`data: ${JSON.stringify({ error: 'No user message to respond to' })}\n\n`);
-      res.end();
-      return;
-    }
+  async streamFromLLM(model, maxTokens, temperature, userMsg, sessionId, res) {
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*',
+    });
 
     try {
-      const responseStream = await this.llmProxy.generate(lastMsg.content, { model, maxTokens, temperature });
+      const responseStream = await this.llmProxy.generate(userMsg.content, { model, maxTokens, temperature });
 
       res.write(`data: ${JSON.stringify({ type: 'stream_start', model, tokens: maxTokens, timestamp: Date.now() })}\n\n`);
 
@@ -95,19 +113,21 @@ export class AgentService {
     }
   }
 
-  // 데모 스트리밍
-  streamDemo(conversation, model, maxTokens, sessionId, res, req = null) {
-    const demoResponses = [
-      '안녕하세요! 로컬 LLM 데모입니다. 이 서버는 Mac Studio M5 Max에서 실행 중이며, 실시간으로 추론 결과를 스트리밍합니다.\n\n주요 기능:\n- **실시간 스트리밍**: SSE를 통해 토큰 단위 응답\n- **WebSocket**: 양방향 실시간 통신\n- **대화 관리**: 세션별 메시지 히스토리\n- **시스템 모니터링**: CPU/메모리 사용량',
-      '좋습니다! 로컬에서 LLM을 돌리는 가장 효율적인 방법은 Mac Studio 같은 강력한 하드웨어를 활용하는 거예요.\n\n이 데모는 실제 LLM 대신 시뮬레이션을 사용하지만, 프로덕션에서는 Ollama, llama.cpp, Mamba 등을 연결할 수 있습니다.',
-      '테스트 메시지입니다. 스트리밍 속도와 실시간 업데이트가 정상적으로 작동하는지 확인해주세요.\n\n문제가 있으면 설정 탭에서 모델 파라미터를 조정할 수 있습니다.',
-    ];
-
-    const responseIndex = conversation.messageCount % demoResponses.length;
-    const fullResponse = demoResponses[responseIndex];
+  // 데모 스트리밍 — 마지막 user 메시지 기준으로 응답 생성
+  streamDemo(userPrompt, model, maxTokens, sessionId, res, req = null) {
+    // 사용자 메시지를 기반으로 데모 응답 생성
+    const prompt = userPrompt.slice(0, 30);
+    const fullResponse = this.generateDemoResponse(prompt, userPrompt);
 
     let charIndex = 0;
     const totalChars = fullResponse.length;
+
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*',
+    });
 
     res.write(`data: ${JSON.stringify({ type: 'stream_start', model, tokens: maxTokens, timestamp: Date.now() })}\n\n`);
 
@@ -143,6 +163,15 @@ export class AgentService {
       clearInterval(streamInterval);
       res.end();
     });
+  }
+
+  generateDemoResponse(prompt, fullPrompt) {
+    const responses = [
+      `사용자: "${prompt}"\n\n이 메시지는 로컬 LLM 데모 서버에서 생성되었습니다.\n\n실제 환경에서는 Ollama, llama.cpp, or Mamba 모델과 연결하여 실제 추론을 수행합니다.\n\n현재 Mac Studio M5 Max (18-core CPU, 64GB RAM)에서 실행 중이며,\nSSE를 통해 토큰 단위 실시간 스트리밍을 제공합니다.`,
+      `질문: "${prompt}"\n\n로컬 LLM 데모 서버에 오신 것을 환영합니다!\n\n이 데모는 SSE(Server-Sent Events)를 통해 실시간 토큰 스트리밍을 제공합니다.\nWebSocket을 통해 양방향 실시간 통신도 가능합니다.`,
+      `입력 내용: "${prompt}"\n\n스트리밍 응답 확인 중...\n\n✅ SSE 토큰 단위 전송\n✅ 시스템 모니터링 실시간 업데이트\n✅ 대화 히스토리 자동 저장\n\n다른 파라미터를 설정 탭에서 조정해 보세요.`,
+    ];
+    return responses[Math.floor(Math.random() * responses.length)];
   }
 
   // 비동기 추론 시작
