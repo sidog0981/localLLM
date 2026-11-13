@@ -1,5 +1,6 @@
 // WebSocket 관리 — 연결/디스커넥트/브로드캐스트
 import { WebSocketServer, WebSocket } from 'ws';
+import { ChatHandler } from './chatHandler.js';
 
 export class WebSocketManager {
   constructor(server) {
@@ -16,6 +17,8 @@ export class WebSocketManager {
   }
 
   setupHandlers() {
+    this.chatHandler = null; // Set from index.js
+
     this.wss.on('connection', (ws, req) => {
       const id = Math.random().toString(36).slice(2, 10);
       this.clients.set(id, ws);
@@ -23,7 +26,6 @@ export class WebSocketManager {
       ws.id = id;
       ws.isAlive = true;
 
-      // 연결 알림
       this.broadcast({ type: 'system', event: 'client_connected', data: { id, total: this.clients.size } });
 
       ws.on('pong', () => { ws.isAlive = true; });
@@ -31,7 +33,9 @@ export class WebSocketManager {
       ws.on('message', (data) => {
         try {
           const msg = JSON.parse(data.toString());
-          this.handleMessage(id, msg);
+          if (this.chatHandler) {
+            this.chatHandler.handle(ws, msg);
+          }
         } catch (e) {
           this.sendTo(id, { type: 'error', message: 'Invalid JSON' });
         }
@@ -49,7 +53,6 @@ export class WebSocketManager {
       console.log(`[WS] Client ${id} connected (${this.clients.size} total)`);
     });
 
-    // Keep-alive ping every 30s
     setInterval(() => {
       this.wss.clients.forEach((ws) => {
         if (!ws.isAlive) return ws.terminate();
@@ -57,21 +60,6 @@ export class WebSocketManager {
         ws.ping();
       });
     }, 30000);
-  }
-
-  handleMessage(clientId, msg) {
-    switch (msg.type) {
-      case 'subscribe':
-        // Subscriptions: { type: 'subscribe', channels: ['agent', 'system', 'conversation:<id>'] }
-        break;
-      case 'ping':
-        this.sendTo(clientId, { type: 'pong', timestamp: Date.now() });
-        break;
-      case 'request':
-        // Forward to agent service
-        this.broadcast({ type: 'request', from: clientId, data: msg.data });
-        break;
-    }
   }
 
   sendTo(clientId, data) {

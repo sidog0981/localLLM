@@ -1,10 +1,10 @@
 // localLLM — 실시간 AI 추론 대시보드 서버
 // Express + SSE + WebSocket 기반
+// Ollama/llama.cpp 호환 LLM 프록시 지원
 
 import express from 'express';
 import cors from 'cors';
 import { createServer } from 'http';
-import { WebSocketServer } from 'ws';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
@@ -15,10 +15,12 @@ import settingsRouter, { setSettingsStore } from './routes/settings.js';
 import systemRouter, { setSystemMonitor } from './routes/system.js';
 
 import { WebSocketManager } from './services/websocket.js';
+import { ChatHandler } from './services/chatHandler.js';
 import { AgentService } from './services/agent.js';
 import { ConversationStore } from './services/conversations.js';
 import { SettingsStore } from './services/settings.js';
 import { SystemMonitor } from './services/system.js';
+import { LLMProxy } from './services/llmProxy.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -30,18 +32,24 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// ─── Services (created first) ────────────────────────────
-const wss = new WebSocketManager(null); // temp, server will be set
+// ─── Services ────────────────────────────────────────────
+const wss = new WebSocketManager(null);
 const conversationStore = new ConversationStore();
 const settingsStore = new SettingsStore();
 const systemMonitor = new SystemMonitor();
-const agentService = new AgentService(wss, conversationStore, settingsStore, systemMonitor);
+const llmProxy = new LLMProxy(settingsStore.get('customModelUrl') || 'http://localhost:11434');
 
 // ─── HTTP Server ─────────────────────────────────────────
 const server = createServer(app);
-
-// Re-initialize WebSocket with real server
 wss.reinitialize(server);
+
+// Chat handler for WebSocket
+const chatHandler = new ChatHandler(wss, null); // agentService set below
+wss.chatHandler = chatHandler;
+
+// Agent service
+const agentService = new AgentService(wss, conversationStore, settingsStore, systemMonitor, llmProxy);
+chatHandler.agentService = agentService;
 
 // ─── API Routes ──────────────────────────────────────────
 app.use('/api/agent', agentRouter);
@@ -56,18 +64,74 @@ setSettingsStore(settingsStore);
 app.use('/api/system', systemRouter);
 setSystemMonitor(systemMonitor);
 
-// SSE endpoint for streaming agent responses
+// SSE endpoint
 app.get('/api/agent/stream', (req, res) => {
   const sessionId = req.query.sessionId;
   agentService.streamResponse(sessionId, req, res);
 });
 
-// Health check
-app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', uptime: process.uptime(), timestamp: new Date().toISOString() });
+// Ollama proxy endpoint
+app.post('/api/llm/proxy', async (req, res) => {
+  const { action, model, prompt, messages, options } = req.body;
+
+  try {
+    let result;
+    switch (action) {
+      case 'list':
+        result = await llmProxy.listModels();
+        break;
+      case 'generate':
+        result = await llmProxy.generate(prompt, { model, ...options });
+        break;
+      case 'chat':
+        result = await llmProxy.chat(messages, { model, ...options });
+        break;
+      default:
+        res.status(400).json({ error: 'Invalid action' });
+        return;
+    }
+
+    if (result && result.pipe) {
+      // Stream the response
+      res.setHeader('Content-Type', 'text/event-stream');
+      res.setHeader('Cache-Control', 'no-cache');
+      res.setHeader('Connection', 'keep-alive');
+
+      result.on('data', (chunk) => {
+        try {
+          const data = JSON.parse(chunk.toString());
+          res.write(`data: ${JSON.stringify(data)}\n\n`);
+        } catch {}
+      });
+
+      result.on('end', () => {
+        res.write('data: [DONE]\n\n');
+        res.end();
+      });
+
+      result.on('error', (err) => {
+        res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
+        res.end();
+      });
+    } else {
+      res.json(result);
+    }
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
 });
 
-// Root → show API info or serve static
+// Health check
+app.get('/api/health', (_req, res) => {
+  res.json({
+    status: 'ok',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+    llmConnected: llmProxy.baseUrl,
+  });
+});
+
+// Root → serve static
 app.get('/', (_req, res) => {
   try {
     const indexPath = join(__dirname, '..', 'web-static', 'index.html');
@@ -82,13 +146,14 @@ app.get('/', (_req, res) => {
         conversations: '/api/conversations',
         settings: '/api/settings',
         system: '/api/system',
+        llm: '/api/llm/proxy',
         health: '/api/health',
       },
     });
   }
 });
 
-// Serve static files if built
+// Serve static files
 const staticPaths = [join(__dirname, '..', 'web-static'), join(__dirname, '..', 'dist')];
 for (const staticPath of staticPaths) {
   try {
@@ -103,10 +168,15 @@ for (const staticPath of staticPaths) {
 }
 
 // Start server
-server.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, '0.0.0.0', async () => {
   console.log(`🚀 localLLM Server running at http://0.0.0.0:${PORT}`);
   console.log(`📡 API:      http://localhost:${PORT}/api`);
   console.log(`🔌 WebSocket: ws://localhost:${PORT}`);
+
+  // Check LLM connection
+  const llmHealthy = await llmProxy.health();
+  console.log(`🤖 LLM:      ${llmHealthy ? '✅ Connected' : '⚠️ Demo mode (set URL in settings)'} (${llmProxy.baseUrl})`);
+
   const summary = systemMonitor.getSummary();
   if (summary) console.log(`📊 System:   ${summary}`);
 });
