@@ -165,16 +165,11 @@ function renderMessages() {
     el.innerHTML = '';
     // Ensure welcome screen is visible
     const container = el.parentElement;
-    if (!container.querySelector('.welcome-screen')) {
+    if (!container.querySelector('.welcome-text')) {
       el.innerHTML = `
         <div class="welcome-screen">
-          <div class="logo-icon">🧠</div>
-          <h1>localLLM</h1>
-          <div class="welcome-actions">
-            <button class="welcome-action" onclick="createNewConversation()">대화 시작하기<small>새로운 대화방에서 시작하세요</small></button>
-            <button class="welcome-action" onclick="document.getElementById('chat-input').focus()">추론 테스트<small>"안녕"이라고 입력해보세요</small></button>
-            <button class="welcome-action" onclick="switchTab('settings')">설정<small>모델 파라미터를 조정하세요</small></button>
-            <button class="welcome-action" onclick="showServerInfo()">서버 정보<small>다른 기기에서 접속하는 법</small></button>
+          <div class="welcome-text">
+            <h1>무엇을 도와드릴까요?</h1>
           </div>
         </div>`;
     }

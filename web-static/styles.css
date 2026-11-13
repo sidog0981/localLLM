@@ -40,19 +40,13 @@ html, body {
   flex-shrink: 0;
 }
 
-.sidebar-header { padding: 10px 10px 6px; }
-
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
-  font-size: 15px;
+.sidebar-logo {
+  padding: 10px 14px 8px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--text-primary);
-  cursor: default;
+  letter-spacing: -0.3px;
 }
-.logo svg { color: var(--text-secondary); }
 
 .new-chat-btn {
   display: flex;
@@ -165,51 +159,14 @@ html, body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 40px 20px;
-  text-align: center;
-  max-width: 700px;
+  padding: 20px;
 }
-.welcome-screen .logo-icon {
-  color: var(--text-muted);
-  margin-bottom: 20px;
-  opacity: 0.4;
-}
-.welcome-screen .logo-icon svg { width: 48px; height: 48px; }
-.welcome-screen h1 {
-  font-size: 20px;
+.welcome-text h1 {
+  font-size: 18px;
   font-weight: 400;
   color: var(--text-primary);
-  margin-bottom: 24px;
-}
-.welcome-actions {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-  width: 100%;
-  max-width: 540px;
-}
-.welcome-action {
-  padding: 12px 14px;
-  background: var(--bg-input);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  color: var(--text-secondary);
-  font-size: 13px;
-  text-align: left;
-  cursor: pointer;
-  transition: all 0.15s;
-  line-height: 1.45;
-}
-.welcome-action:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
-  border-color: var(--border-light);
-}
-.welcome-action small {
-  display: block;
-  color: var(--text-muted);
-  font-size: 11px;
-  margin-top: 3px;
+  text-align: center;
+  letter-spacing: -0.2px;
 }
 
 /* Messages */
