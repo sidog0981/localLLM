@@ -11,233 +11,128 @@
     <!-- Sidebar -->
     <aside class="sidebar">
       <div class="sidebar-header">
-        <div class="logo">🧠 localLLM</div>
-        <div id="connection-status" class="status-badge">● 연결됨</div>
+        <button class="new-chat-btn" onclick="showNewConversation()">
+          <span>＋</span>
+          <span>새 대화</span>
+        </button>
       </div>
-
-      <button class="btn-new" onclick="showNewConversation()">＋ 새 대화</button>
-
-      <div class="conversation-list" id="conversation-list">
-        <!-- Conversations will be rendered here -->
+      <div class="sidebar-scroll" id="conversation-list">
       </div>
-
       <div class="sidebar-footer">
-        <button class="sidebar-link" onclick="switchTab('system')">📊 시스템</button>
-        <button class="sidebar-link" onclick="switchTab('settings')">⚙️ 설정</button>
+        <button class="sidebar-footer-btn" onclick="switchTab('settings')">⚙️ 설정</button>
+        <button class="sidebar-footer-btn" onclick="showServerInfo()">ℹ️ 서버 정보</button>
       </div>
     </aside>
 
     <!-- Main Content -->
     <main class="main-content">
-      <!-- Dashboard Tab -->
-      <div id="tab-dashboard" class="tab active">
-        <div class="dashboard-header">
-          <h1>대시보드</h1>
-          <p>실시간 AI 추론 모니터링</p>
-        </div>
-
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-icon">💬</div>
-            <div class="stat-value" id="stat-conversations">0</div>
-            <div class="stat-label">대화</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon">📝</div>
-            <div class="stat-value" id="stat-messages">0</div>
-            <div class="stat-label">메시지</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon">🤖</div>
-            <div class="stat-value" id="stat-model">Llama3</div>
-            <div class="stat-label">모델</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon">⚡</div>
-            <div class="stat-value" id="stat-cpu">0%</div>
-            <div class="stat-label">CPU</div>
-          </div>
-        </div>
-
-        <div class="quick-actions">
-          <h3>퀵 액션</h3>
-          <div class="quick-actions-grid">
-            <button class="action-card" onclick="switchTab('chat')">
-              <span class="action-icon">💬</span>
-              <span class="action-title">채팅 시작</span>
-              <span class="action-desc">새 대화OrCreate 대화</span>
-            </button>
-            <button class="action-card" onclick="switchTab('system')">
-              <span class="action-icon">📊</span>
-              <span class="action-title">시스템 모니터링</span>
-              <span class="action-desc">CPU, 메모리, 디스크</span>
-            </button>
-            <button class="action-card" onclick="switchTab('settings')">
-              <span class="action-icon">⚙️</span>
-              <span class="action-title">설정</span>
-              <span class="action-desc">모델 파라미터 조정</span>
-            </button>
-            <button class="action-card" onclick="openTerminal()">
-              <span class="action-icon">🖥️</span>
-              <span class="action-title">서버 정보</span>
-              <span class="action-desc">IP, 포트, 연결 방법</span>
-            </button>
-          </div>
-        </div>
-
-        <div class="server-info">
-          <h3>🖥️ 서버 정보</h3>
-          <div id="server-info-content"></div>
-        </div>
-      </div>
-
       <!-- Chat Tab -->
-      <div id="tab-chat" class="tab">
-        <div class="chat-layout">
-          <div class="chat-messages" id="chat-messages">
-            <div class="chat-welcome">
-              <div class="welcome-icon">🧠</div>
-              <h2>localLLM 데모</h2>
-              <p>대화를 선택하고 메시지를 입력하면<br>실시간으로 AI 추론 결과를 스트리밍합니다.</p>
-              <button class="btn-new-chat" onclick="createNewConversation()">새 대화 만들기</button>
+      <div id="tab-chat" class="tab active">
+        <div class="chat-area">
+          <div class="messages-container" id="chat-messages">
+            <div class="welcome-screen">
+              <div class="logo-icon">🧠</div>
+              <h1>localLLM</h1>
+              <div class="welcome-actions">
+                <button class="welcome-action" onclick="createNewConversation()">
+                  대화 시작하기
+                  <small>새로운 대화방에서 시작하세요</small>
+                </button>
+                <button class="welcome-action" onclick="document.getElementById('chat-input').focus()">
+                  추론 테스트
+                  <small>"안녕"이라고 입력해보세요</small>
+                </button>
+                <button class="welcome-action" onclick="switchTab('settings')">
+                  설정 변경하기
+                  <small>모델 파라미터를 조정하세요</small>
+                </button>
+                <button class="welcome-action" onclick="showServerInfo()">
+                  서버 정보
+                  <small>다른 기기에서 접속하는 법</small>
+                </button>
+              </div>
             </div>
           </div>
-          <div class="chat-input-area">
-            <div class="input-wrapper">
+        </div>
+        <div class="input-area">
+          <div class="input-container">
+            <div class="input-box">
               <textarea id="chat-input" placeholder="메시지를 입력하세요..." rows="1" onkeydown="handleInputKey(event)"></textarea>
-              <button id="send-btn" onclick="sendMessage()" disabled>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <line x1="22" y1="2" x2="11" y2="13"></line>
-                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                </svg>
-              </button>
-            </div>
-            <div class="input-hint">Enter로 전송 · Shift+Enter로 줄바꿈</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- System Tab -->
-      <div id="tab-system" class="tab">
-        <div class="system-header">
-          <h2>시스템 모니터링</h2>
-          <div id="system-status-badge" class="status-badge">● 연결됨</div>
-        </div>
-        <div class="system-grid">
-          <div class="system-card">
-            <h3>🔲 CPU</h3>
-            <div class="cpu-ring-container">
-              <svg class="cpu-ring" viewBox="0 0 120 120">
-                <circle cx="60" cy="60" r="52" fill="none" stroke="#2d3148" stroke-width="8"/>
-                <circle id="cpu-ring" cx="60" cy="60" r="52" fill="none" stroke="#22c55e" stroke-width="8"
-                  stroke-dasharray="326.73" stroke-dashoffset="326.73" stroke-linecap="round"
-                  transform="rotate(-90 60 60)"/>
-              </svg>
-              <div class="cpu-ring-text">
-                <span id="cpu-percent">0</span>%
+              <div class="input-actions">
+                <button class="send-btn" id="send-btn" onclick="sendMessage()" disabled>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                  </svg>
+                </button>
               </div>
             </div>
-            <div class="system-detail">
-              <span>코어: <strong id="cpu-cores">-</strong></span>
-            </div>
-          </div>
-          <div class="system-card">
-            <h3>💾 메모리</h3>
-            <div class="memory-bars">
-              <div class="memory-bar-container">
-                <div class="memory-bar-label">사용</div>
-                <div class="memory-bar">
-                  <div id="mem-bar-used" class="memory-bar-fill used"></div>
-                </div>
-                <span id="mem-percent">0%</span>
-              </div>
-              <div class="memory-bar-container">
-                <div class="memory-bar-label">여유</div>
-                <div class="memory-bar">
-                  <div id="mem-bar-free" class="memory-bar-fill free"></div>
-                </div>
-                <span id="mem-free">0 GB</span>
-              </div>
-            </div>
-            <div class="system-detail">
-              <span>총 <strong id="mem-total">-</strong></span>
-              <span>사용 <strong id="mem-used">-</strong></span>
-            </div>
-          </div>
-          <div class="system-card">
-            <h3>💿 디스크</h3>
-            <div class="disk-info">
-              <div class="memory-bar-container">
-                <div class="memory-bar">
-                  <div id="disk-bar" class="memory-bar-fill disk"></div>
-                </div>
-              </div>
-              <div class="system-detail">
-                <span>총 <strong id="disk-total">-</strong></span>
-                <span>사용 <strong id="disk-used">-</strong></span>
-                <span>사용률 <strong id="disk-percent">-</strong></span>
-              </div>
-            </div>
-          </div>
-          <div class="system-card">
-            <h3>📋 프로세스</h3>
-            <div class="process-info">
-              <div class="process-count" id="process-count">-</div>
-              <span class="system-detail">실행 중 프로세스</span>
-            </div>
-            <div class="system-detail" style="margin-top: 12px;">
-              <span>업타임 <strong id="uptime">-</strong></span>
-            </div>
+            <div class="input-hint">Enter로 전송 · Shift+Enter로 줄바꿈 · Mac Studio M5 Max에서 구동 중</div>
           </div>
         </div>
       </div>
 
       <!-- Settings Tab -->
       <div id="tab-settings" class="tab">
-        <div class="settings-header">
-          <h2>설정</h2>
-          <button class="btn-reset" onclick="resetSettings()">초기화</button>
-        </div>
-        <div class="settings-grid">
-          <div class="setting-card">
-            <label>모델</label>
-            <input type="text" id="set-model" placeholder="demo-llama3-8b">
-          </div>
-          <div class="setting-card">
-            <label>최대 토큰 수</label>
-            <input type="number" id="set-maxTokens" min="64" max="8192" placeholder="512">
-          </div>
-          <div class="setting-card">
-            <label>Temperature</label>
-            <input type="number" id="set-temperature" min="0" max="2" step="0.1" placeholder="0.7">
-          </div>
-          <div class="setting-card">
-            <label>Top P</label>
-            <input type="number" id="set-topP" min="0" max="1" step="0.05" placeholder="0.9">
-          </div>
-          <div class="setting-card toggle-setting">
-            <div class="toggle-label">
-              <label>스트리밍 활성화</label>
-              <span id="toggle-stream-enabled" class="toggle-status">✅</span>
+        <div class="settings-panel">
+          <h2>⚙️ 설정</h2>
+          <div class="settings-group">
+            <h3>모델 설정</h3>
+            <div class="settings-row">
+              <div>
+                <div class="settings-label">모델</div>
+                <div class="settings-desc">추론에 사용할 LLM</div>
+              </div>
+              <input type="text" id="set-model" class="settings-input" placeholder="demo-llama3-8b">
             </div>
-            <button class="toggle-btn" id="btn-stream" onclick="toggleSetting('streamEnabled')"></button>
-          </div>
-          <div class="setting-card toggle-setting">
-            <div class="toggle-label">
-              <label>WebSocket 활성화</label>
-              <span id="toggle-ws-enabled" class="toggle-status">✅</span>
+            <div class="settings-row">
+              <div>
+                <div class="settings-label">최대 토큰 수</div>
+                <div class="settings-desc">응답의 최대 토큰 길이</div>
+              </div>
+              <input type="number" id="set-maxTokens" class="settings-input" min="64" max="8192" placeholder="512">
             </div>
-            <button class="toggle-btn" id="btn-ws" onclick="toggleSetting('wsEnabled')"></button>
-          </div>
-          <div class="setting-card toggle-setting">
-            <div class="toggle-label">
-              <label>자동 스크롤</label>
-              <span id="toggle-auto-scroll" class="toggle-status">✅</span>
+            <div class="settings-row">
+              <div>
+                <div class="settings-label">Temperature</div>
+                <div class="settings-desc">창의성 (0.0-2.0)</div>
+              </div>
+              <input type="number" id="set-temperature" class="settings-input" min="0" max="2" step="0.1" placeholder="0.7">
             </div>
-            <button class="toggle-btn" id="btn-autoscroll" onclick="toggleSetting('autoScroll')"></button>
+            <div class="settings-row">
+              <div>
+                <div class="settings-label">Top P</div>
+                <div class="settings-desc">핵심 샘플링 임계값</div>
+              </div>
+              <input type="number" id="set-topP" class="settings-input" min="0" max="1" step="0.05" placeholder="0.9">
+            </div>
           </div>
-          <div class="setting-card">
-            <label>테마</label>
+          <div class="settings-group">
+            <h3>기능</h3>
+            <div class="settings-row">
+              <div>
+                <div class="settings-label">스트리밍</div>
+                <div class="settings-desc">토큰 단위 실시간 전송</div>
+              </div>
+              <button class="toggle-btn" id="btn-stream" onclick="toggleSetting('streamEnabled')"></button>
+            </div>
+            <div class="settings-row">
+              <div>
+                <div class="settings-label">WebSocket</div>
+                <div class="settings-desc">양방향 실시간 통신</div>
+              </div>
+              <button class="toggle-btn" id="btn-ws" onclick="toggleSetting('wsEnabled')"></button>
+            </div>
+            <div class="settings-row">
+              <div>
+                <div class="settings-label">자동 스크롤</div>
+                <div class="settings-desc">새 메시지의 최하단 자동 이동</div>
+              </div>
+              <button class="toggle-btn" id="btn-autoscroll" onclick="toggleSetting('autoScroll')"></button>
+            </div>
+          </div>
+          <div class="settings-group">
+            <h3>테마</h3>
             <div class="theme-buttons">
               <button class="theme-btn active" data-theme="dark" onclick="setTheme('dark')">🌙 다크</button>
               <button class="theme-btn" data-theme="light" onclick="setTheme('light')">☀️ 라이트</button>
