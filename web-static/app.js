@@ -199,6 +199,15 @@ function hideNewConversation() {
   document.getElementById('new-conv-modal').style.display = 'none';
 }
 
+function showErrorModal(message) {
+  document.getElementById('error-message').textContent = message;
+  document.getElementById('error-modal').style.display = 'flex';
+}
+
+function hideErrorModal() {
+  document.getElementById('error-modal').style.display = 'none';
+}
+
 async function submitNewConversation() {
   const name = document.getElementById('new-conv-name').value.trim() || `대화 ${state.conversations.length + 1}`;
   const data = await api('/api/conversations', { method: 'POST', body: { name } });
@@ -220,6 +229,17 @@ function renderMessages() {
         <h2>localLLM 데모</h2>
         <p>대화를 선택하고 메시지를 입력하면<br>실시간으로 AI 추론 결과를 스트리밍합니다.</p>
         <button class="btn-new-chat" onclick="createNewConversation()">새 대화 만들기</button>
+      </div>`;
+    return;
+  }
+
+  if (state.messages.length === 0 && state.streaming) {
+    el.innerHTML = `
+      <div class="chat-welcome">
+        <div class="streaming-welcome">
+          <div class="welcome-icon">⏳</div>
+          <h2>추론 중...</h2>
+        </div>
       </div>`;
     return;
   }
@@ -293,12 +313,26 @@ async function sendMessage() {
   state.messages.push(userMsg);
   renderMessages();
 
-  // Start inference
-  state.streaming = true;
-  updateStreamingUI();
+  try {
+    // Start inference
+    state.streaming = true;
+    updateStreamingUI();
 
-  // Start SSE stream
-  streamSSE(state.activeConv);
+    // Start inference API
+    await fetch(`${API}/api/agent/infer`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId: state.activeConv, prompt: text }),
+    });
+
+    // Start SSE stream
+    await streamSSE(state.activeConv);
+  } catch (e) {
+    // 서버 연결 실패 → 모달 표시
+    state.streaming = false;
+    updateStreamingUI();
+    showErrorModal('서버에 연결할 수 없습니다.\n서버가 실행 중인지 확인해주세요.');
+  }
 }
 
 function handleInputKey(e) {

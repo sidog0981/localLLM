@@ -584,6 +584,25 @@ html, body {
 .modal input:focus { outline: none; border-color: var(--accent); }
 .modal-actions { display: flex; gap: 8px; }
 
+.error-modal {
+  text-align: center;
+  max-width: 400px;
+  border-color: var(--error);
+}
+.error-modal .error-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+.error-modal h3 {
+  color: var(--error);
+}
+.error-modal p {
+  color: var(--text-muted);
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
+
 .btn-primary {
   flex: 1;
   padding: 10px;
